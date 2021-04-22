@@ -33,12 +33,12 @@ func main() {
 		l := line
 		for {
 			if word, found := hasSpecWord(l); found {
-				tag := lt.Tag(word)
+				tag, short := lt.Tag(word)
 
 				i := strings.Index(l, word)
 
 				updated.WriteString(l[:i])
-				updated.WriteString(fmt.Sprintf(`<a name="%s"></a>[%s](#%s)`, tag, word, tag))
+				updated.WriteString(fmt.Sprintf(`<a name="%s"></a>%s<sup>[%s](#%s)</sup>`, tag, word, short, tag))
 				tags = append(tags, tag)
 
 				l = l[i+len(word):]
@@ -72,7 +72,7 @@ type levelTracker struct {
 	prefixes int
 }
 
-func (t *levelTracker) Tag(prefix string) string {
+func (t *levelTracker) Tag(prefix string) ( /* tag */ string /* short */, string) {
 	var state []string
 	for _, s := range t.state {
 		state = append(state, strconv.Itoa(s))
@@ -80,7 +80,8 @@ func (t *levelTracker) Tag(prefix string) string {
 	t.prefixes++
 	prefix = strings.ReplaceAll(prefix, " ", "_")
 	tag := fmt.Sprintf("%s-%s-%s", prefix, strings.Join(state, "."), strconv.Itoa(t.prefixes))
-	return strings.ToLower(tag)
+	short := fmt.Sprintf("%s-%s", strings.Join(state, "."), strconv.Itoa(t.prefixes))
+	return strings.ToLower(tag), short
 }
 
 func (t *levelTracker) Next(level int) {
