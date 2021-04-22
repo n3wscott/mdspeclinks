@@ -51,8 +51,9 @@ func main() {
 		fmt.Println(updated.String())
 	}
 
+	fmt.Print("\n\n")
 	for _, tag := range tags {
-		fmt.Printf("[%s](%s)", tag, tag)
+		fmt.Printf("- [%s](#%s)\n", tag, tag)
 	}
 
 	if err := scanner.Err(); err != nil {
