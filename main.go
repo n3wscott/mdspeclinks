@@ -51,10 +51,11 @@ func main() {
 		fmt.Println(updated.String())
 	}
 
-	fmt.Print("\n\n")
+	fmt.Println("<!---")
 	for _, tag := range tags {
 		fmt.Printf("- [%s](#%s)\n", tag, tag)
 	}
+	fmt.Println("---!>")
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
@@ -84,7 +85,8 @@ func (t *levelTracker) Tag(prefix string) string {
 	}
 	t.prefixes++
 	prefix = strings.ReplaceAll(prefix, " ", "_")
-	return fmt.Sprintf("%s-%s-%s", prefix, strings.Join(state, "."), strconv.Itoa(t.prefixes))
+	tag := fmt.Sprintf("%s-%s-%s", prefix, strings.Join(state, "."), strconv.Itoa(t.prefixes))
+	return strings.ToLower(tag)
 }
 
 func (t *levelTracker) Next(level int) {
