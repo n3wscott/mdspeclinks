@@ -38,7 +38,7 @@ func main() {
 				i := strings.Index(l, word)
 
 				updated.WriteString(l[:i])
-				updated.WriteString(fmt.Sprintf(`<a name="%s"></a>%s`, tag, word))
+				updated.WriteString(fmt.Sprintf(`<a name="%s"></a>[%s](#%s)`, tag, word, tag))
 				tags = append(tags, tag)
 
 				l = l[i+len(word):]
@@ -50,12 +50,6 @@ func main() {
 
 		fmt.Println(updated.String())
 	}
-
-	fmt.Println("<!---")
-	for _, tag := range tags {
-		fmt.Printf("- [%s](#%s)\n", tag, tag)
-	}
-	fmt.Println("---!>")
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
