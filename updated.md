@@ -130,28 +130,3 @@ leve duce perlucidus tulit mentis et at ipse dentibus esse? Ipse ipsis, Dictys?
 Finxit matri. Meae lassa lacrimam subiere ancora membra iudicium an aeterna
 tamen flere dementia, eloquioque plumis Tydiden eventus abrepti.
 
-
-- [SHOULD-1.1-1](#SHOULD-1.1-1)
-- [MAY-1.1-2](#MAY-1.1-2)
-- [MUST-1.1-3](#MUST-1.1-3)
-- [MUST-1.1-4](#MUST-1.1-4)
-- [MAY-1.1-5](#MAY-1.1-5)
-- [MUST-1.1-6](#MUST-1.1-6)
-- [SHOULD-1.2-1](#SHOULD-1.2-1)
-- [MUST-1.3-1](#MUST-1.3-1)
-- [MAY-1.3-2](#MAY-1.3-2)
-- [MAY-1.3-3](#MAY-1.3-3)
-- [MAY-1.3-4](#MAY-1.3-4)
-- [MUST-1.3-5](#MUST-1.3-5)
-- [SHOULD_NOT-1.3-6](#SHOULD_NOT-1.3-6)
-- [MAY-1.4-1](#MAY-1.4-1)
-- [MUST-1.4-2](#MUST-1.4-2)
-- [MUST-1.4-3](#MUST-1.4-3)
-- [MUST_NOT-1.4-4](#MUST_NOT-1.4-4)
-- [SHOULD-1.4.1-1](#SHOULD-1.4.1-1)
-- [MUST-1.4.1.1-1](#MUST-1.4.1.1-1)
-- [MAY-1.4.1.1-2](#MAY-1.4.1.1-2)
-- [MAY-1.4.2-1](#MAY-1.4.2-1)
-- [SHOULD-1.4.2.1-1](#SHOULD-1.4.2.1-1)
-- [SHOULD_NOT-1.4.2.1-2](#SHOULD_NOT-1.4.2.1-2)
-- [MAY-1.4.2.1-3](#MAY-1.4.2.1-3)
