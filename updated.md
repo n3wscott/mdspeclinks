@@ -1,4 +1,3 @@
-[/var/folders/nc/kbpv1klx3gn9mkgdvwq3c40w0000gp/T/go-build2571134227/b001/exe/mdspeclinks]
 # Et viscera terrent medioque flamma
 
 ## Cycnus in corpora tibi per obstabat thalamoque

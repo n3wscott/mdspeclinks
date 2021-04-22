@@ -67,7 +67,7 @@ func main() {
 
 // TODO: there is an edge case where the MUST/SHOULD NOT is split on two lines.
 func hasSpecWord(line string) (string, bool) {
-	for _, word := range []string{"MUST NOT", "MUST", "SHOULD NOT", "SHOULD", "MAY"} {
+	for _, word := range []string{"MUST NOT", "MUST", "REQUIRED", "SHOULD NOT", "SHOULD", "SHALL NOT", "SHALL", "NOT RECOMMENDED", "RECOMMENDED", "MAY"} {
 		if strings.Contains(line, word) {
 			// TODO: this will not work with lines with more than one spec word... will have to make tokens and scan them.
 			return word, true
@@ -85,6 +85,9 @@ func (t *levelTracker) Tag(prefix string) ( /* tag */ string /* short */, string
 	var state []string
 	for _, s := range t.state {
 		state = append(state, strconv.Itoa(s))
+	}
+	if len(state) == 0 {
+		state = append(state, "0")
 	}
 	t.prefixes++
 	prefix = strings.ReplaceAll(prefix, " ", "_")
