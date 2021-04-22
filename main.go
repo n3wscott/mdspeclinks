@@ -18,6 +18,8 @@ func main() {
 
 	lt := new(levelTracker)
 
+	var tags []string
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -36,7 +38,8 @@ func main() {
 				i := strings.Index(l, word)
 
 				updated.WriteString(l[:i])
-				updated.WriteString(fmt.Sprintf(`<a name="%s">%s</a>`, tag, word))
+				updated.WriteString(fmt.Sprintf(`<a name="%s"></a>%s`, tag, word))
+				tags = append(tags, tag)
 
 				l = l[i+len(word):]
 			} else {
@@ -46,6 +49,10 @@ func main() {
 		}
 
 		fmt.Println(updated.String())
+	}
+
+	for _, tag := range tags {
+		fmt.Printf("[%s](%s)", tag, tag)
 	}
 
 	if err := scanner.Err(); err != nil {
