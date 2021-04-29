@@ -1,8 +1,10 @@
 # mdspeclinks
 
 A tool to inject spec language links into markdown. `mdspeclinks` will look for
- "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" (see [RFC 2119](https://tools.ietf.org/html/rfc2119) for interpretation) and attach a link to the
-spec word to be linked from external sources.
+"MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
+"RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" (see
+[RFC 2119](https://tools.ietf.org/html/rfc2119) for interpretation) and attach a
+link to the spec word to be linked from external sources.
 
 ## Installation
 
@@ -78,9 +80,10 @@ respicit caecisque iubar illinc reservet.
 - Ab agat Caesar consiliis
   <a name="must-1.1.1-1"></a>MUST<sup>[1.1.1-1](#must-1.1.1-1)</sup> crimine
   inquit
-- Clipei SHOULD qui gemino dominus si habebat
-  <a name="should_not-1.1.1-2"></a>SHOULD
-  NOT<sup>[1.1.1-2](#should_not-1.1.1-2)</sup> subiecta
+- Clipei
+  <a name="should-1.1.1-2"></a>SHOULD<sup>[1.1.1-2](#should-1.1.1-2)</sup> qui
+  gemino dominus si habebat <a name="should_not-1.1.1-3"></a>SHOULD
+  NOT<sup>[1.1.1-3](#should_not-1.1.1-3)</sup> subiecta
 
 ## Qui Diti veniebat rursus
 
