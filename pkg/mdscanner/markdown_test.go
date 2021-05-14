@@ -1,24 +1,43 @@
 package mdscanner
 
 import (
-	"fmt"
-	"os"
 	"strings"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-func Example_single() {
-	md := `This is a MUST example.`
+func TestSingle(t *testing.T) {
+	md := `This is a MUST example. MAY be two things.`
 
 	in := strings.NewReader(md)
-	if err := Markdown(in, os.Stdout); err != nil {
-		fmt.Println(err)
+	found, err := Markdown(in)
+
+	if err != nil {
+		t.Error(err)
 	}
 
-	// Output:
-	// This is a <a name="must-0-1"></a>MUST<sup>[0-1](#must-0-1)</sup> example.
+	wanted := []Found{
+		{Line: 1, Column: 10, Word: "MUST", Context: "This is a MUST example. MAY be two things."},
+		{Line: 1, Column: 24, Word: "MAY", Context: "This is a MUST example. MAY be two things."},
+	}
+
+	if got := found; !cmp.Equal(got, wanted) {
+		t.Error("Found (-want, +got):", cmp.Diff(wanted, got))
+	}
+
+	want := "This is a **MUST** example. MAY be two things."
+	if got := found[0].WhichWord(); !cmp.Equal(got, want) {
+		t.Error("WhichWord (-want, +got):", cmp.Diff(want, got))
+	}
+
+	want = "This is a MUST example. **MAY** be two things."
+	if got := found[1].WhichWord(); !cmp.Equal(got, want) {
+		t.Error("WhichWord (-want, +got):", cmp.Diff(want, got))
+	}
 }
 
-func Example_readme() {
+func TestReadme(t *testing.T) {
 	md := `# Lorem markdownum optari illum
 
 Temptatae atque usque MUST maerens moribundo Cererem. Cervix MAY et ut oculos iuveni
@@ -43,36 +62,54 @@ Instruit exhausto exosus Amor **causas** amore ut MAY orbi potest rasa lunam
 militiae *illum adhuc remisit* creatis.`
 
 	in := strings.NewReader(md)
-	if err := Markdown(in, os.Stdout); err != nil {
-		fmt.Println(err)
+	found, err := Markdown(in)
+
+	if err != nil {
+		t.Error(err)
 	}
 
-	// Output:
-	// # Lorem markdownum optari illum
-	//
-	// Temptatae atque usque <a name="must-1-1"></a>MUST<sup>[1-1](#must-1-1)</sup> maerens moribundo Cererem. Cervix <a name="may-1-2"></a>MAY<sup>[1-2](#may-1-2)</sup> et ut oculos iuveni
-	// sublime dabit cera, **monstraverat animique**. Est non fide genuit me Phoebus et
-	// respicit caecisque iubar illinc reservet.
-	//
-	// ## Agitasse ubi non profugus movent
-	//
-	// - Neve atque <a name="must-1.1-1"></a>MUST<sup>[1.1-1](#must-1.1-1)</sup> de heros
-	// - Concedite <a name="should-1.1-2"></a>SHOULD<sup>[1.1-2](#should-1.1-2)</sup> emisit
-	// - <a name="may-1.1-3"></a>MAY<sup>[1.1-3](#may-1.1-3)</sup> Tactae honorem multos
-	//
-	// ### Munychiosque ne
-	//
-	// - Ab agat Caesar consiliis <a name="must-1.1.1-1"></a>MUST<sup>[1.1.1-1](#must-1.1.1-1)</sup> crimine inquit
-	// - Clipei <a name="should-1.1.1-2"></a>SHOULD<sup>[1.1.1-2](#should-1.1.1-2)</sup> qui gemino dominus si habebat <a name="should_not-1.1.1-3"></a>SHOULD NOT<sup>[1.1.1-3](#should_not-1.1.1-3)</sup> subiecta
-	//
-	// ## Qui Diti veniebat rursus
-	//
-	// Tibi quae sed candidioribus quoque, ab est tantum fluvialis vultum classem pede.
-	// Instruit exhausto exosus Amor **causas** amore ut <a name="may-1.2-1"></a>MAY<sup>[1.2-1](#may-1.2-1)</sup> orbi potest rasa lunam
-	// militiae *illum adhuc remisit* creatis.
+	wanted := []Found{{
+		Line: 3, Column: 22,
+		Word:    "MUST",
+		Context: "Temptatae atque usque MUST maerens moribundo Cererem. Cervix MAY et ut oculos iuveni",
+	}, {
+		Line: 3, Column: 61,
+		Word:    "MAY",
+		Context: "Temptatae atque usque MUST maerens moribundo Cererem. Cervix MAY et ut oculos iuveni",
+	}, {
+		Line: 9, Column: 13,
+		Word:    "MUST",
+		Context: "- Neve atque MUST de heros",
+	}, {
+		Line: 10, Column: 12, Word: "SHOULD", Context: "- Concedite SHOULD emisit",
+	}, {
+		Line: 11, Column: 2,
+		Word:    "MAY",
+		Context: "- MAY Tactae honorem multos",
+	}, {
+		Line: 15, Column: 27,
+		Word:    "MUST",
+		Context: "- Ab agat Caesar consiliis MUST crimine inquit",
+	}, {
+		Line: 16, Column: 9,
+		Word:    "SHOULD",
+		Context: "- Clipei SHOULD qui gemino dominus si habebat SHOULD NOT subiecta",
+	}, {
+		Line: 16, Column: 46,
+		Word:    "SHOULD NOT",
+		Context: "- Clipei SHOULD qui gemino dominus si habebat SHOULD NOT subiecta",
+	}, {
+		Line: 21, Column: 50,
+		Word:    "MAY",
+		Context: "Instruit exhausto exosus Amor **causas** amore ut MAY orbi potest rasa lunam",
+	}}
+
+	if got := found; !cmp.Equal(got, wanted) {
+		t.Error("Get (-want, +got):", cmp.Diff(wanted, got))
+	}
 }
 
-func Example_withHeaders() {
+func TestWithHeaders(t *testing.T) {
 	md := `Before sections MUST work.
 # Section 1
 MUST work here too. RECOMMENDED if there are two.
@@ -89,23 +126,58 @@ This is a NOT RECOMMENDED example.
 `
 
 	in := strings.NewReader(md)
-	if err := Markdown(in, os.Stdout); err != nil {
-		fmt.Println(err)
+	found, err := Markdown(in)
+	if err != nil {
+		t.Error(err)
 	}
 
-	// Output:
-	// Before sections <a name="must-0-1"></a>MUST<sup>[0-1](#must-0-1)</sup> work.
-	// # Section 1
-	// <a name="must-1-1"></a>MUST<sup>[1-1](#must-1-1)</sup> work here too. <a name="recommended-1-2"></a>RECOMMENDED<sup>[1-2](#recommended-1-2)</sup> if there are two.
-	// # Section 1
-	// ## Subsection 1.1
-	// This is a <a name="must-1.1-1"></a>MUST<sup>[1.1-1](#must-1.1-1)</sup> example.
-	// This is a <a name="must_not-1.1-2"></a>MUST NOT<sup>[1.1-2](#must_not-1.1-2)</sup> example.
-	// This is a <a name="required-1.1-3"></a>REQUIRED<sup>[1.1-3](#required-1.1-3)</sup> example.
-	// This is a <a name="should-1.1-4"></a>SHOULD<sup>[1.1-4](#should-1.1-4)</sup> example.
-	// This is a <a name="should_not-1.1-5"></a>SHOULD NOT<sup>[1.1-5](#should_not-1.1-5)</sup> example.
-	// This is a <a name="may-1.1-6"></a>MAY<sup>[1.1-6](#may-1.1-6)</sup> example.
-	// This is a <a name="may-1.1-7"></a>MAY<sup>[1.1-7](#may-1.1-7)</sup> example.
-	// This is a <a name="recommended-1.1-8"></a>RECOMMENDED<sup>[1.1-8](#recommended-1.1-8)</sup> example.
-	// This is a <a name="not_recommended-1.1-9"></a>NOT RECOMMENDED<sup>[1.1-9](#not_recommended-1.1-9)</sup> example.
+	wanted := []Found{{
+		Line: 1, Column: 16,
+		Word: "MUST", Context: "Before sections MUST work.",
+	}, {
+		Line: 3, Column: 0,
+		Word:    "MUST",
+		Context: "MUST work here too. RECOMMENDED if there are two.",
+	}, {
+		Line: 3, Column: 20,
+		Word:    "RECOMMENDED",
+		Context: "MUST work here too. RECOMMENDED if there are two.",
+	}, {
+		Line: 5, Column: 10,
+		Word:    "MUST",
+		Context: "This is a MUST example.",
+	}, {
+		Line: 6, Column: 10,
+		Word:    "MUST NOT",
+		Context: "This is a MUST NOT example.",
+	}, {
+		Line: 7, Column: 10,
+		Word:    "REQUIRED",
+		Context: "This is a REQUIRED example.",
+	}, {
+		Line: 8, Column: 10,
+		Word: "SHOULD", Context: "This is a SHOULD example.",
+	}, {
+		Line: 9, Column: 10,
+		Word:    "SHOULD NOT",
+		Context: "This is a SHOULD NOT example.",
+	}, {
+		Line: 10, Column: 10,
+		Word: "MAY", Context: "This is a MAY example.",
+	}, {
+		Line: 11, Column: 10,
+		Word: "MAY", Context: "This is a MAY example.",
+	}, {
+		Line: 12, Column: 10,
+		Word:    "RECOMMENDED",
+		Context: "This is a RECOMMENDED example.",
+	}, {
+		Line: 13, Column: 10,
+		Word:    "NOT RECOMMENDED",
+		Context: "This is a NOT RECOMMENDED example.",
+	}}
+
+	if got := found; !cmp.Equal(got, wanted) {
+		t.Error("Get (-want, +got):", cmp.Diff(wanted, got))
+	}
 }

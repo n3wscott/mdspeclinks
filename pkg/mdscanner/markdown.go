@@ -5,17 +5,35 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"strconv"
 	"strings"
 )
 
-func Markdown(in io.Reader, out io.Writer) error {
+// https://github.com/cloudevents/spec/blame/v1.0.1/spec.md#L13-L17
+
+type Found struct {
+	Line    int
+	Column  int
+	Word    string
+	Context string
+}
+
+func (f Found) BlameLink(link string) string {
+	return fmt.Sprintf("%s?w=%s&c=%d#L%d", link, f.Word, f.Column, f.Line)
+}
+
+func (f Found) WhichWord() string {
+	return fmt.Sprintf("%s**%s**%s", f.Context[:f.Column], f.Word, f.Context[f.Column+len(f.Word):])
+}
+
+func Markdown(in io.Reader) ([]Found, error) {
 	lt := new(levelTracker)
 
-	var tags []string
+	var found []Found
 
+	at := 0
 	scanner := bufio.NewScanner(in)
 	for scanner.Scan() {
+		at++
 		line := scanner.Text()
 
 		if strings.HasPrefix(line, "#") {
@@ -23,31 +41,30 @@ func Markdown(in io.Reader, out io.Writer) error {
 			parts := strings.Split(line, " ")
 			lt.Next(len(parts[0]))
 		}
-		updated := strings.Builder{}
 		l := line
+		c := 0
 		for {
-			if word, found := hasSpecWord(l); found {
-				tag, short := lt.Tag(word)
-
+			if word, has := hasSpecWord(l); has {
 				i := strings.Index(l, word)
-
-				updated.WriteString(l[:i])
-				updated.WriteString(fmt.Sprintf(`<a name="%s"></a>%s<sup>[%s](#%s)</sup>`, tag, word, short, tag))
-				tags = append(tags, tag)
-
+				c += i
 				l = l[i+len(word):]
+
+				found = append(found, Found{
+					Line:    at,
+					Column:  c,
+					Word:    word,
+					Context: line,
+				})
+
+				c += len(word)
 			} else {
-				updated.WriteString(l)
 				break
 			}
 		}
 
-		if _, err := fmt.Fprintln(out, updated.String()); err != nil {
-			return err
-		}
 	}
 
-	return scanner.Err()
+	return found, scanner.Err()
 }
 
 // TODO: there is an edge case where the MUST/SHOULD NOT is split on two lines.
@@ -70,21 +87,6 @@ func hasSpecWord(line string) (string, bool) {
 type levelTracker struct {
 	state    []int
 	prefixes int
-}
-
-func (t *levelTracker) Tag(prefix string) ( /* tag */ string /* short */, string) {
-	var state []string
-	for _, s := range t.state {
-		state = append(state, strconv.Itoa(s))
-	}
-	if len(state) == 0 {
-		state = append(state, "0")
-	}
-	t.prefixes++
-	prefix = strings.ReplaceAll(prefix, " ", "_")
-	tag := fmt.Sprintf("%s-%s-%s", prefix, strings.Join(state, "."), strconv.Itoa(t.prefixes))
-	short := fmt.Sprintf("%s-%s", strings.Join(state, "."), strconv.Itoa(t.prefixes))
-	return strings.ToLower(tag), short
 }
 
 func (t *levelTracker) Next(level int) {
