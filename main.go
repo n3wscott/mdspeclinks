@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/n3wscott/mdspeclinks/pkg/importgen"
 	"net/http"
 	"os"
 	"strings"
@@ -34,8 +35,8 @@ func main() {
 	if found, err := mdscanner.Markdown(resp.Body); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed processing markdown: %v", err)
 	} else {
-		for _, f := range found {
-			fmt.Fprintf(os.Stdout, "%s - %q\n", f.BlameLink(toBlame(filename)), f.WhichWord())
+		if err := importgen.GenYAML(filename, found, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to create yaml: %v", err)
 		}
 	}
 }
@@ -43,10 +44,6 @@ func main() {
 func toRaw(file string) string {
 	hasBlob := strings.Replace(file, "https://github.com", "https://raw.githubusercontent.com", 1)
 	return strings.Replace(hasBlob, "/blob/", "/", 1)
-}
-
-func toBlame(file string) string {
-	return strings.Replace(file, "/blob/", "/blame/", 1)
 }
 
 //                https://github.com/n3wscott/mdspeclinks/blob/main/example.md
