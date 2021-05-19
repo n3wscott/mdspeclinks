@@ -12,91 +12,91 @@ import (
 // https://github.com/cloudevents/spec/blame/v1.0.1/spec.md#L13-L17
 
 type Found struct {
-	Line     int
-	Column   int
+	Offset   int
+	Lines    []int
 	Section  string
 	Word     string
-	Context  string
 	Sentence string
 }
 
 func (f Found) BlameLink(link string) string {
-	return fmt.Sprintf("%s?w=%s&c=%d#L%d", link, f.Word, f.Column, f.Line)
+	return fmt.Sprintf("%s?w=%s&c=%d#%s", link, strings.ReplaceAll(f.Word, " ", "_"), f.Offset, f.Line())
+}
+
+func (f Found) Line() string {
+	if len(f.Lines) == 0 {
+		return ""
+	}
+	if len(f.Lines) == 1 {
+		return fmt.Sprintf("L%d", f.Lines[0])
+	} else {
+		return fmt.Sprintf("L%d-L%d", f.Lines[0], f.Lines[len(f.Lines)-1])
+	}
 }
 
 func (f Found) WhichWord() string {
-	return fmt.Sprintf("%s**%s**%s", f.Context[:f.Column], f.Word, f.Context[f.Column+len(f.Word):])
+	return fmt.Sprintf("%s**%s**%s", f.Sentence[:f.Offset], f.Word, f.Sentence[f.Offset+len(f.Word):])
 }
 
 func Markdown(in io.Reader) ([]Found, error) {
 	lt := new(levelTracker)
 
 	var found []Found
-	var pendingFound []Found
-
 	st := new(sentenceTracker)
-
-	at := 0
+	lineCount := 0
+	var lines []int
 	scanner := bufio.NewScanner(in)
 	for scanner.Scan() {
-		at++
+		lineCount++
+		lines = append(lines, lineCount)
 		line := scanner.Text()
 
 		if strings.HasPrefix(line, "#") {
 			parts := strings.Split(line, " ")
 			lt.Next(len(parts[0]))
 		}
-		l := line
-		c := 0
 
+		line = strings.TrimSpace(line)
+		i := 0
 		for {
-			if word, has := hasSpecWord(l); has {
-				i := strings.Index(l, word)
-
-				if sentences := st.Ingest(c, l[:i+len(word)]); len(sentences) > 0 {
-					if pendingFound != nil {
-						for i := range pendingFound {
-							pendingFound[i].Sentence = sentences[len(sentences)-1]
-						}
-						found = append(found, pendingFound...)
-						pendingFound = nil
+			sentence, offset, term := st.IngestUntil(i, line)
+			if sentence != "" {
+				l := sentence
+				o := 0
+				for {
+					word, has := hasSpecWord(l)
+					if !has {
+						break
 					}
+					at := strings.Index(l, word)
+					o += at
+
+					l = l[at+len(word):]
+
+					found = append(found, Found{
+						Offset:   o,
+						Word:     word,
+						Section:  lt.Section(),
+						Sentence: sentence,
+						Lines:    lines,
+					})
+
+					o += len(word)
 				}
-
-				c += i
-				l = l[i+len(word):]
-
-				pendingFound = append(pendingFound, Found{
-					Line:    at,
-					Column:  c,
-					Word:    word,
-					Context: line,
-					Section: lt.Section(),
-				})
-
-				c += len(word)
-			} else {
-				if sentences := st.Ingest(c, l); len(sentences) > 0 {
-					if pendingFound != nil {
-						for i := range pendingFound {
-							pendingFound[i].Sentence = sentences[len(sentences)-1]
-						}
-						found = append(found, pendingFound...)
-						pendingFound = nil
-					}
+			}
+			if term {
+				if offset == 0 || i+offset >= len(line) {
+					lines = []int(nil)
+				} else {
+					lines = []int{lineCount}
 				}
+			}
+
+			i += offset
+			if i >= len(line) {
 				break
 			}
-		}
-	}
-
-	if sentences := st.Ingest(0, "# EOF"); len(sentences) > 0 {
-		if pendingFound != nil {
-			for i := range pendingFound {
-				pendingFound[i].Sentence = sentences[len(sentences)-1]
-			}
-			found = append(found, pendingFound...)
-			pendingFound = nil
+			line = line[offset:]
 		}
 	}
 
@@ -124,36 +124,40 @@ type sentenceTracker struct {
 	text *strings.Builder
 }
 
-func (t *sentenceTracker) Ingest(offset int, line string) []string {
-	line = strings.TrimSpace(line)
+// IngestUntil reads line until a sentence terminates, and returns back the number of chars consumed from line.
+func (t *sentenceTracker) IngestUntil(offset int, line string) (string /* sentence */, int /* consumed */, bool /* terminated */) {
 	if t.text == nil {
 		t.text = new(strings.Builder)
 	}
 
-	var lines []string
-
 	// Special case a blank line.
 	if offset == 0 && len(line) == 0 {
-		lines = append(lines, strings.TrimSpace(t.text.String()))
+		sentence := strings.TrimSpace(t.text.String())
 		t.text = new(strings.Builder)
-		return lines
+		return sentence, len(line), true
 	} else if len(line) == 0 {
-		return nil
+		return "", len(line), true
 	}
 
 	for i := 0; i < len(line); i++ {
 		if kind, ending := isEnding(offset, i, line); ending {
+			sentence := strings.TrimSpace(t.text.String())
 			switch kind {
 			case "ignore":
-				return lines
-			case "pre":
-				lines = append(lines, strings.TrimSpace(t.text.String()))
 				t.text = new(strings.Builder)
-				t.text.WriteByte(line[i])
+				return sentence, len(line), true
+			case "pre":
+				t.text = new(strings.Builder)
+				if sentence != "" {
+					return sentence, i, true
+				} else {
+					t.text.WriteByte(line[i])
+				}
 			case "post":
 				t.text.WriteByte(line[i])
-				lines = append(lines, strings.TrimSpace(t.text.String()))
+				sentence = strings.TrimSpace(t.text.String())
 				t.text = new(strings.Builder)
+				return sentence, i + 1, true
 			}
 		} else {
 			t.text.WriteByte(line[i])
@@ -161,7 +165,7 @@ func (t *sentenceTracker) Ingest(offset int, line string) []string {
 	}
 	// Last, add space to let removing lines not stick words together.
 	t.text.WriteByte(' ')
-	return lines
+	return "", len(line), false
 }
 
 // pre ending means this char terms the previous sentence, and a new one should start.

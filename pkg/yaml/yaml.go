@@ -19,13 +19,14 @@ type SpecRequirements struct {
 }
 
 type Requirement struct {
-	ID     string `json:"id"`
-	Word   string `json:"word"`
-	Line   int    `json:"line"`
-	Column int    `json:"column"`
-	Text   string `json:"text"`
-	Link   string `json:"link"`
-	MD5    string `json:"md5"`
+	ID      string `json:"id"`
+	Word    string `json:"word"`
+	Lines   string `json:"lines"`
+	Section string `json:"section"`
+	Offset  int    `json:"offset"`
+	Text    string `json:"text"`
+	Link    string `json:"link"`
+	MD5     string `json:"md5"`
 }
 
 func Generate(file string, found []mdscanner.Found, out io.Writer) error {
@@ -40,13 +41,14 @@ func Generate(file string, found []mdscanner.Found, out io.Writer) error {
 	for _, f := range found {
 		h := md5.Sum([]byte(f.Sentence))
 		r := Requirement{
-			ID:     fmt.Sprintf("%s%s_L%dC%d", name, strings.ReplaceAll(f.Word, " ", "_"), f.Line, f.Column),
-			Word:   f.Word,
-			Line:   f.Line,
-			Column: f.Column,
-			Text:   f.Sentence,
-			Link:   f.BlameLink(toBlame(file)),
-			MD5:    fmt.Sprintf("%x", h),
+			ID:      fmt.Sprintf("%s%s%sC%d", name, strings.ReplaceAll(f.Word, " ", "_"), f.Section, f.Offset),
+			Word:    f.Word,
+			Lines:   f.Line(),
+			Offset:  f.Offset,
+			Section: f.Section,
+			Text:    f.Sentence,
+			Link:    f.BlameLink(toBlame(file)),
+			MD5:     fmt.Sprintf("%x", h),
 		}
 		sr.Requirements = append(sr.Requirements, r)
 	}
