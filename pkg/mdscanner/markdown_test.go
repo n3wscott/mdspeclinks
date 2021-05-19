@@ -18,20 +18,32 @@ func TestSingle(t *testing.T) {
 	}
 
 	wanted := []Found{
-		{Line: 1, Column: 10, Word: "MUST", Context: "This is a MUST example. MAY be two things."},
-		{Line: 1, Column: 24, Word: "MAY", Context: "This is a MUST example. MAY be two things."},
+		{
+			Offset:   10,
+			Lines:    []int{1},
+			Section:  "0",
+			Word:     "MUST",
+			Sentence: "This is a MUST example.",
+		},
+		{
+			Index:    1,
+			Lines:    []int{1},
+			Section:  "0",
+			Word:     "MAY",
+			Sentence: "MAY be two things.",
+		},
 	}
 
 	if got := found; !cmp.Equal(got, wanted) {
 		t.Error("Found (-want, +got):", cmp.Diff(wanted, got))
 	}
 
-	want := "This is a **MUST** example. MAY be two things."
+	want := "This is a **MUST** example."
 	if got := found[0].WhichWord(); !cmp.Equal(got, want) {
 		t.Error("WhichWord (-want, +got):", cmp.Diff(want, got))
 	}
 
-	want = "This is a MUST example. **MAY** be two things."
+	want = "**MAY** be two things."
 	if got := found[1].WhichWord(); !cmp.Equal(got, want) {
 		t.Error("WhichWord (-want, +got):", cmp.Diff(want, got))
 	}
@@ -68,41 +80,76 @@ militiae *illum adhuc remisit* creatis.`
 		t.Error(err)
 	}
 
-	wanted := []Found{{
-		Line: 3, Column: 22,
-		Word:    "MUST",
-		Context: "Temptatae atque usque MUST maerens moribundo Cererem. Cervix MAY et ut oculos iuveni",
-	}, {
-		Line: 3, Column: 61,
-		Word:    "MAY",
-		Context: "Temptatae atque usque MUST maerens moribundo Cererem. Cervix MAY et ut oculos iuveni",
-	}, {
-		Line: 9, Column: 13,
-		Word:    "MUST",
-		Context: "- Neve atque MUST de heros",
-	}, {
-		Line: 10, Column: 12, Word: "SHOULD", Context: "- Concedite SHOULD emisit",
-	}, {
-		Line: 11, Column: 2,
-		Word:    "MAY",
-		Context: "- MAY Tactae honorem multos",
-	}, {
-		Line: 15, Column: 27,
-		Word:    "MUST",
-		Context: "- Ab agat Caesar consiliis MUST crimine inquit",
-	}, {
-		Line: 16, Column: 9,
-		Word:    "SHOULD",
-		Context: "- Clipei SHOULD qui gemino dominus si habebat SHOULD NOT subiecta",
-	}, {
-		Line: 16, Column: 46,
-		Word:    "SHOULD NOT",
-		Context: "- Clipei SHOULD qui gemino dominus si habebat SHOULD NOT subiecta",
-	}, {
-		Line: 21, Column: 50,
-		Word:    "MAY",
-		Context: "Instruit exhausto exosus Amor **causas** amore ut MAY orbi potest rasa lunam",
-	}}
+	wanted := []Found{
+		{
+			Offset:   22,
+			Lines:    []int{3},
+			Section:  "1",
+			Word:     "MUST",
+			Sentence: "Temptatae atque usque MUST maerens moribundo Cererem.",
+		},
+		{
+			Offset:   7,
+			Index:    1,
+			Lines:    []int{3, 4},
+			Section:  "1",
+			Word:     "MAY",
+			Sentence: "Cervix MAY et ut oculos iuveni sublime dabit cera, **monstraverat animique**.",
+		},
+		{
+			Offset:   13,
+			Lines:    []int{9, 10},
+			Section:  "1.1",
+			Word:     "MUST",
+			Sentence: "- Neve atque MUST de heros",
+		},
+		{
+			Offset:   12,
+			Index:    1,
+			Lines:    []int{11},
+			Section:  "1.1",
+			Word:     "SHOULD",
+			Sentence: "- Concedite SHOULD emisit",
+		},
+		{
+			Offset:   2,
+			Index:    2,
+			Lines:    []int{12},
+			Section:  "1.1",
+			Word:     "MAY",
+			Sentence: "- MAY Tactae honorem multos",
+		},
+		{
+			Offset:   27,
+			Lines:    []int{15, 16},
+			Section:  "1.1.1",
+			Word:     "MUST",
+			Sentence: "- Ab agat Caesar consiliis MUST crimine inquit",
+		},
+		{
+			Offset:   9,
+			Index:    1,
+			Lines:    []int{17},
+			Section:  "1.1.1",
+			Word:     "SHOULD",
+			Sentence: "- Clipei SHOULD qui gemino dominus si habebat SHOULD NOT subiecta",
+		},
+		{
+			Offset:   46,
+			Index:    2,
+			Lines:    []int{17},
+			Section:  "1.1.1",
+			Word:     "SHOULD NOT",
+			Sentence: "- Clipei SHOULD qui gemino dominus si habebat SHOULD NOT subiecta",
+		},
+		{
+			Offset:   11,
+			Lines:    []int{21, 22},
+			Section:  "1.2",
+			Word:     "MAY",
+			Sentence: "* amore ut MAY orbi potest rasa lunam militiae *illum adhuc remisit",
+		},
+	}
 
 	if got := found; !cmp.Equal(got, wanted) {
 		t.Error("Get (-want, +got):", cmp.Diff(wanted, got))
@@ -131,51 +178,94 @@ This is a NOT RECOMMENDED example.
 		t.Error(err)
 	}
 
-	wanted := []Found{{
-		Line: 1, Column: 16,
-		Word: "MUST", Context: "Before sections MUST work.",
-	}, {
-		Line: 3, Column: 0,
-		Word:    "MUST",
-		Context: "MUST work here too. RECOMMENDED if there are two.",
-	}, {
-		Line: 3, Column: 20,
-		Word:    "RECOMMENDED",
-		Context: "MUST work here too. RECOMMENDED if there are two.",
-	}, {
-		Line: 5, Column: 10,
-		Word:    "MUST",
-		Context: "This is a MUST example.",
-	}, {
-		Line: 6, Column: 10,
-		Word:    "MUST NOT",
-		Context: "This is a MUST NOT example.",
-	}, {
-		Line: 7, Column: 10,
-		Word:    "REQUIRED",
-		Context: "This is a REQUIRED example.",
-	}, {
-		Line: 8, Column: 10,
-		Word: "SHOULD", Context: "This is a SHOULD example.",
-	}, {
-		Line: 9, Column: 10,
-		Word:    "SHOULD NOT",
-		Context: "This is a SHOULD NOT example.",
-	}, {
-		Line: 10, Column: 10,
-		Word: "MAY", Context: "This is a MAY example.",
-	}, {
-		Line: 11, Column: 10,
-		Word: "MAY", Context: "This is a MAY example.",
-	}, {
-		Line: 12, Column: 10,
-		Word:    "RECOMMENDED",
-		Context: "This is a RECOMMENDED example.",
-	}, {
-		Line: 13, Column: 10,
-		Word:    "NOT RECOMMENDED",
-		Context: "This is a NOT RECOMMENDED example.",
-	}}
+	wanted := []Found{
+		{
+			Offset:   16,
+			Lines:    []int{1},
+			Section:  "0",
+			Word:     "MUST",
+			Sentence: "Before sections MUST work.",
+		},
+		{Lines: []int{3}, Section: "1", Word: "MUST", Sentence: "MUST work here too."},
+		{
+			Index:    1,
+			Lines:    []int{3},
+			Section:  "1",
+			Word:     "RECOMMENDED",
+			Sentence: "RECOMMENDED if there are two.",
+		},
+		{
+			Offset:   10,
+			Lines:    []int{5},
+			Section:  "1.1",
+			Word:     "MUST",
+			Sentence: "This is a MUST example.",
+		},
+		{
+			Offset:   10,
+			Index:    1,
+			Lines:    []int{6},
+			Section:  "1.1",
+			Word:     "MUST NOT",
+			Sentence: "This is a MUST NOT example.",
+		},
+		{
+			Offset:   10,
+			Index:    2,
+			Lines:    []int{7},
+			Section:  "1.1",
+			Word:     "REQUIRED",
+			Sentence: "This is a REQUIRED example.",
+		},
+		{
+			Offset:   10,
+			Index:    3,
+			Lines:    []int{8},
+			Section:  "1.1",
+			Word:     "SHOULD",
+			Sentence: "This is a SHOULD example.",
+		},
+		{
+			Offset:   10,
+			Index:    4,
+			Lines:    []int{9},
+			Section:  "1.1",
+			Word:     "SHOULD NOT",
+			Sentence: "This is a SHOULD NOT example.",
+		},
+		{
+			Offset:   10,
+			Index:    5,
+			Lines:    []int{10},
+			Section:  "1.1",
+			Word:     "MAY",
+			Sentence: "This is a MAY example.",
+		},
+		{
+			Offset:   10,
+			Index:    6,
+			Lines:    []int{11},
+			Section:  "1.1",
+			Word:     "MAY",
+			Sentence: "This is a MAY example.",
+		},
+		{
+			Offset:   10,
+			Index:    7,
+			Lines:    []int{12},
+			Section:  "1.1",
+			Word:     "RECOMMENDED",
+			Sentence: "This is a RECOMMENDED example.",
+		},
+		{
+			Offset:   10,
+			Index:    8,
+			Lines:    []int{13},
+			Section:  "1.1",
+			Word:     "NOT RECOMMENDED",
+			Sentence: "This is a NOT RECOMMENDED example.",
+		},
+	}
 
 	if got := found; !cmp.Equal(got, wanted) {
 		t.Error("Get (-want, +got):", cmp.Diff(wanted, got))
