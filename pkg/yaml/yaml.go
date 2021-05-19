@@ -24,6 +24,7 @@ type Requirement struct {
 	Lines   string `json:"lines"`
 	Section string `json:"section"`
 	Offset  int    `json:"offset"`
+	Index   int    `json:"index"`
 	Text    string `json:"text"`
 	Link    string `json:"link"`
 	MD5     string `json:"md5"`
@@ -39,12 +40,13 @@ func Generate(file string, found []mdscanner.Found, out io.Writer) error {
 	name = fmt.Sprintf("%s%s", strings.ToUpper(string(name[0])), name[1:])
 
 	for _, f := range found {
-		h := md5.Sum([]byte(f.Sentence))
+		h := md5.Sum([]byte(f.WhichWord()))
 		r := Requirement{
-			ID:      fmt.Sprintf("%s%s%sC%d", name, strings.ReplaceAll(f.Word, " ", "_"), f.Section, f.Offset),
+			ID:      fmt.Sprintf("%s-%s-%s[%d]", name, strings.ReplaceAll(f.Word, " ", "_"), f.Section, f.Index),
 			Word:    f.Word,
 			Lines:   f.Line(),
 			Offset:  f.Offset,
+			Index:   f.Index,
 			Section: f.Section,
 			Text:    f.Sentence,
 			Link:    f.BlameLink(toBlame(file)),

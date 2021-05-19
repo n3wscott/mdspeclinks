@@ -13,6 +13,7 @@ import (
 
 type Found struct {
 	Offset   int
+	Index    int
 	Lines    []int
 	Section  string
 	Word     string
@@ -73,10 +74,12 @@ func Markdown(in io.Reader) ([]Found, error) {
 
 					l = l[at+len(word):]
 
+					section, index := lt.Section()
 					found = append(found, Found{
 						Offset:   o,
+						Index:    index,
 						Word:     word,
-						Section:  lt.Section(),
+						Section:  section,
 						Sentence: sentence,
 						Lines:    lines,
 					})
@@ -188,9 +191,12 @@ func isEnding(offset, at int, line string) (string, bool) {
 
 type levelTracker struct {
 	state []int
+	index int
 }
 
-func (t *levelTracker) Section() string {
+func (t *levelTracker) Section() (string, int) {
+	index := t.index
+	t.index++
 	var state []string
 	for _, s := range t.state {
 		state = append(state, strconv.Itoa(s))
@@ -198,10 +204,11 @@ func (t *levelTracker) Section() string {
 	if len(state) == 0 {
 		state = append(state, "0")
 	}
-	return strings.Join(state, ".")
+	return strings.Join(state, "."), index
 }
 
 func (t *levelTracker) Next(level int) {
+	t.index = 0
 	if len(t.state) < level {
 		for len(t.state) != level {
 			t.state = append(t.state, 0)
