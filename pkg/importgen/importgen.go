@@ -11,6 +11,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const template = `package rename
+const Specification = {{ .Specification }}
+const Processed = {{ .Processed }}
+
+`
+
 type SpecRequirements struct {
 	Specification string        `json:"specification"`
 	Processed     string        `json:"Processed"`
@@ -41,7 +47,7 @@ func GenYAML(file string, found []mdscanner.Found, out io.Writer) error {
 			Word:   f.Word,
 			Line:   f.Column,
 			Column: f.Line,
-			Text:   f.WhichWord(),
+			Text:   f.Sentence, //f.WhichWord(),
 			Link:   f.BlameLink(toBlame(file)),
 		}
 		sr.Requirements = append(sr.Requirements, r)
