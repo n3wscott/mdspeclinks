@@ -1,24 +1,55 @@
 package mdscanner
 
 import (
-	"fmt"
-	"os"
 	"strings"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-func Example_single() {
-	md := `This is a MUST example.`
+func TestSingle(t *testing.T) {
+	md := `This is a MUST example. MAY be two things.`
 
 	in := strings.NewReader(md)
-	if err := Markdown(in, os.Stdout); err != nil {
-		fmt.Println(err)
+	found, err := Markdown(in)
+
+	if err != nil {
+		t.Error(err)
 	}
 
-	// Output:
-	// This is a <a name="must-0-1"></a>MUST<sup>[0-1](#must-0-1)</sup> example.
+	wanted := []Found{
+		{
+			Offset:   10,
+			Lines:    []int{1},
+			Section:  "0",
+			Word:     "MUST",
+			Sentence: "This is a MUST example.",
+		},
+		{
+			Index:    1,
+			Lines:    []int{1},
+			Section:  "0",
+			Word:     "MAY",
+			Sentence: "MAY be two things.",
+		},
+	}
+
+	if got := found; !cmp.Equal(got, wanted) {
+		t.Error("Found (-want, +got):", cmp.Diff(wanted, got))
+	}
+
+	want := "This is a **MUST** example."
+	if got := found[0].WhichWord(); !cmp.Equal(got, want) {
+		t.Error("WhichWord (-want, +got):", cmp.Diff(want, got))
+	}
+
+	want = "**MAY** be two things."
+	if got := found[1].WhichWord(); !cmp.Equal(got, want) {
+		t.Error("WhichWord (-want, +got):", cmp.Diff(want, got))
+	}
 }
 
-func Example_readme() {
+func TestReadme(t *testing.T) {
 	md := `# Lorem markdownum optari illum
 
 Temptatae atque usque MUST maerens moribundo Cererem. Cervix MAY et ut oculos iuveni
@@ -43,36 +74,89 @@ Instruit exhausto exosus Amor **causas** amore ut MAY orbi potest rasa lunam
 militiae *illum adhuc remisit* creatis.`
 
 	in := strings.NewReader(md)
-	if err := Markdown(in, os.Stdout); err != nil {
-		fmt.Println(err)
+	found, err := Markdown(in)
+
+	if err != nil {
+		t.Error(err)
 	}
 
-	// Output:
-	// # Lorem markdownum optari illum
-	//
-	// Temptatae atque usque <a name="must-1-1"></a>MUST<sup>[1-1](#must-1-1)</sup> maerens moribundo Cererem. Cervix <a name="may-1-2"></a>MAY<sup>[1-2](#may-1-2)</sup> et ut oculos iuveni
-	// sublime dabit cera, **monstraverat animique**. Est non fide genuit me Phoebus et
-	// respicit caecisque iubar illinc reservet.
-	//
-	// ## Agitasse ubi non profugus movent
-	//
-	// - Neve atque <a name="must-1.1-1"></a>MUST<sup>[1.1-1](#must-1.1-1)</sup> de heros
-	// - Concedite <a name="should-1.1-2"></a>SHOULD<sup>[1.1-2](#should-1.1-2)</sup> emisit
-	// - <a name="may-1.1-3"></a>MAY<sup>[1.1-3](#may-1.1-3)</sup> Tactae honorem multos
-	//
-	// ### Munychiosque ne
-	//
-	// - Ab agat Caesar consiliis <a name="must-1.1.1-1"></a>MUST<sup>[1.1.1-1](#must-1.1.1-1)</sup> crimine inquit
-	// - Clipei <a name="should-1.1.1-2"></a>SHOULD<sup>[1.1.1-2](#should-1.1.1-2)</sup> qui gemino dominus si habebat <a name="should_not-1.1.1-3"></a>SHOULD NOT<sup>[1.1.1-3](#should_not-1.1.1-3)</sup> subiecta
-	//
-	// ## Qui Diti veniebat rursus
-	//
-	// Tibi quae sed candidioribus quoque, ab est tantum fluvialis vultum classem pede.
-	// Instruit exhausto exosus Amor **causas** amore ut <a name="may-1.2-1"></a>MAY<sup>[1.2-1](#may-1.2-1)</sup> orbi potest rasa lunam
-	// militiae *illum adhuc remisit* creatis.
+	wanted := []Found{
+		{
+			Offset:   22,
+			Lines:    []int{3},
+			Section:  "1",
+			Word:     "MUST",
+			Sentence: "Temptatae atque usque MUST maerens moribundo Cererem.",
+		},
+		{
+			Offset:   7,
+			Index:    1,
+			Lines:    []int{3, 4},
+			Section:  "1",
+			Word:     "MAY",
+			Sentence: "Cervix MAY et ut oculos iuveni sublime dabit cera, **monstraverat animique**.",
+		},
+		{
+			Offset:   13,
+			Lines:    []int{9, 10},
+			Section:  "1.1",
+			Word:     "MUST",
+			Sentence: "- Neve atque MUST de heros",
+		},
+		{
+			Offset:   12,
+			Index:    1,
+			Lines:    []int{11},
+			Section:  "1.1",
+			Word:     "SHOULD",
+			Sentence: "- Concedite SHOULD emisit",
+		},
+		{
+			Offset:   2,
+			Index:    2,
+			Lines:    []int{12},
+			Section:  "1.1",
+			Word:     "MAY",
+			Sentence: "- MAY Tactae honorem multos",
+		},
+		{
+			Offset:   27,
+			Lines:    []int{15, 16},
+			Section:  "1.1.1",
+			Word:     "MUST",
+			Sentence: "- Ab agat Caesar consiliis MUST crimine inquit",
+		},
+		{
+			Offset:   9,
+			Index:    1,
+			Lines:    []int{17},
+			Section:  "1.1.1",
+			Word:     "SHOULD",
+			Sentence: "- Clipei SHOULD qui gemino dominus si habebat SHOULD NOT subiecta",
+		},
+		{
+			Offset:   46,
+			Index:    2,
+			Lines:    []int{17},
+			Section:  "1.1.1",
+			Word:     "SHOULD NOT",
+			Sentence: "- Clipei SHOULD qui gemino dominus si habebat SHOULD NOT subiecta",
+		},
+		{
+			Offset:   11,
+			Lines:    []int{21, 22},
+			Section:  "1.2",
+			Word:     "MAY",
+			Sentence: "* amore ut MAY orbi potest rasa lunam militiae *illum adhuc remisit",
+		},
+	}
+
+	if got := found; !cmp.Equal(got, wanted) {
+		t.Error("Get (-want, +got):", cmp.Diff(wanted, got))
+	}
 }
 
-func Example_withHeaders() {
+func TestWithHeaders(t *testing.T) {
 	md := `Before sections MUST work.
 # Section 1
 MUST work here too. RECOMMENDED if there are two.
@@ -89,23 +173,101 @@ This is a NOT RECOMMENDED example.
 `
 
 	in := strings.NewReader(md)
-	if err := Markdown(in, os.Stdout); err != nil {
-		fmt.Println(err)
+	found, err := Markdown(in)
+	if err != nil {
+		t.Error(err)
 	}
 
-	// Output:
-	// Before sections <a name="must-0-1"></a>MUST<sup>[0-1](#must-0-1)</sup> work.
-	// # Section 1
-	// <a name="must-1-1"></a>MUST<sup>[1-1](#must-1-1)</sup> work here too. <a name="recommended-1-2"></a>RECOMMENDED<sup>[1-2](#recommended-1-2)</sup> if there are two.
-	// # Section 1
-	// ## Subsection 1.1
-	// This is a <a name="must-1.1-1"></a>MUST<sup>[1.1-1](#must-1.1-1)</sup> example.
-	// This is a <a name="must_not-1.1-2"></a>MUST NOT<sup>[1.1-2](#must_not-1.1-2)</sup> example.
-	// This is a <a name="required-1.1-3"></a>REQUIRED<sup>[1.1-3](#required-1.1-3)</sup> example.
-	// This is a <a name="should-1.1-4"></a>SHOULD<sup>[1.1-4](#should-1.1-4)</sup> example.
-	// This is a <a name="should_not-1.1-5"></a>SHOULD NOT<sup>[1.1-5](#should_not-1.1-5)</sup> example.
-	// This is a <a name="may-1.1-6"></a>MAY<sup>[1.1-6](#may-1.1-6)</sup> example.
-	// This is a <a name="may-1.1-7"></a>MAY<sup>[1.1-7](#may-1.1-7)</sup> example.
-	// This is a <a name="recommended-1.1-8"></a>RECOMMENDED<sup>[1.1-8](#recommended-1.1-8)</sup> example.
-	// This is a <a name="not_recommended-1.1-9"></a>NOT RECOMMENDED<sup>[1.1-9](#not_recommended-1.1-9)</sup> example.
+	wanted := []Found{
+		{
+			Offset:   16,
+			Lines:    []int{1},
+			Section:  "0",
+			Word:     "MUST",
+			Sentence: "Before sections MUST work.",
+		},
+		{Lines: []int{3}, Section: "1", Word: "MUST", Sentence: "MUST work here too."},
+		{
+			Index:    1,
+			Lines:    []int{3},
+			Section:  "1",
+			Word:     "RECOMMENDED",
+			Sentence: "RECOMMENDED if there are two.",
+		},
+		{
+			Offset:   10,
+			Lines:    []int{5},
+			Section:  "1.1",
+			Word:     "MUST",
+			Sentence: "This is a MUST example.",
+		},
+		{
+			Offset:   10,
+			Index:    1,
+			Lines:    []int{6},
+			Section:  "1.1",
+			Word:     "MUST NOT",
+			Sentence: "This is a MUST NOT example.",
+		},
+		{
+			Offset:   10,
+			Index:    2,
+			Lines:    []int{7},
+			Section:  "1.1",
+			Word:     "REQUIRED",
+			Sentence: "This is a REQUIRED example.",
+		},
+		{
+			Offset:   10,
+			Index:    3,
+			Lines:    []int{8},
+			Section:  "1.1",
+			Word:     "SHOULD",
+			Sentence: "This is a SHOULD example.",
+		},
+		{
+			Offset:   10,
+			Index:    4,
+			Lines:    []int{9},
+			Section:  "1.1",
+			Word:     "SHOULD NOT",
+			Sentence: "This is a SHOULD NOT example.",
+		},
+		{
+			Offset:   10,
+			Index:    5,
+			Lines:    []int{10},
+			Section:  "1.1",
+			Word:     "MAY",
+			Sentence: "This is a MAY example.",
+		},
+		{
+			Offset:   10,
+			Index:    6,
+			Lines:    []int{11},
+			Section:  "1.1",
+			Word:     "MAY",
+			Sentence: "This is a MAY example.",
+		},
+		{
+			Offset:   10,
+			Index:    7,
+			Lines:    []int{12},
+			Section:  "1.1",
+			Word:     "RECOMMENDED",
+			Sentence: "This is a RECOMMENDED example.",
+		},
+		{
+			Offset:   10,
+			Index:    8,
+			Lines:    []int{13},
+			Section:  "1.1",
+			Word:     "NOT RECOMMENDED",
+			Sentence: "This is a NOT RECOMMENDED example.",
+		},
+	}
+
+	if got := found; !cmp.Equal(got, wanted) {
+		t.Error("Get (-want, +got):", cmp.Diff(wanted, got))
+	}
 }
